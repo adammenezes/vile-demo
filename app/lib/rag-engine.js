@@ -19,6 +19,7 @@ async function fetchEmbeddings(texts) {
         body: JSON.stringify({
           model: `models/${GEMINI_EMBED_MODEL}`,
           content: { parts: [{ text }] },
+          outputDimensionality: 2048,
         }),
       });
 
