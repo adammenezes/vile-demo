@@ -1,26 +1,9 @@
 "use client";
 import { useChat } from '@ai-sdk/react';
 import { Send, Bot, User, FileText, CheckCircle2, Sparkles, Brain, BookOpen, ChevronRight, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRole } from '../../../components/RoleProvider';
 import { useContentEngine } from '../../../context/ContentEngineContext';
-
-// Simulate which docs each AI response draws from based on content keywords
-function detectSources(text, docs) {
-  const lower = text.toLowerCase();
-  return docs.filter(doc => {
-    if (doc.id === 'syllabus') {
-      return lower.includes('syllabus') || lower.includes('grading') || lower.includes('office hour') || lower.includes('late policy') || lower.includes('attendance') || lower.includes('professor') || lower.includes('objective') || lower.includes('textbook');
-    }
-    if (doc.id === 'lecture-01') {
-      return lower.includes('email') || lower.includes('subject line') || lower.includes('greeting') || lower.includes('sign-off') || lower.includes('sincerely') || lower.includes('regards') || lower.includes('etiquette') || lower.includes('empathy') || lower.includes('call to action') || lower.includes('tone') || lower.includes('reply') || lower.includes('response time');
-    }
-    if (doc.id === 'conflict-resolution') {
-      return lower.includes('conflict') || lower.includes('resolution') || lower.includes('mediation') || lower.includes('negotiat') || lower.includes('dispute') || lower.includes('acknowledge') || lower.includes('root cause') || lower.includes('midterm');
-    }
-    return false;
-  });
-}
 
 const QUICK_ACTIONS = [
   { label: 'Generate Quiz', icon: Sparkles, prompt: 'Generate a 5-question multiple-choice quiz with answer key based on the indexed course materials. Format each question clearly with options A–D.' },
@@ -30,25 +13,21 @@ const QUICK_ACTIONS = [
 
 export default function AiAssistant() {
   const { role } = useRole();
-  const { indexedDocs, totalChunks, buildSystemPrompt } = useContentEngine();
+  const { indexedDocs, totalChunks } = useContentEngine();
   const isTeacher = role === 'teacher';
 
-  const [activeSources, setActiveSources] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [activeSourceIds, setActiveSourceIds] = useState([]);
 
-  // Memoize so the system prompt reflects the current doc set at chat init
-  const systemPrompt = useMemo(() => buildSystemPrompt(), [indexedDocs]);
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append, data } = useChat({
     api: '/api/chat',
-    body: { systemPrompt, role },
+    body: { role },
     initialMessages: [
       {
         id: 'init',
         role: 'assistant',
         content: isTeacher
           ? `Welcome back, Professor Sullivan! I have ${indexedDocs.length} document(s) loaded — ${totalChunks} total chunks indexed. Use the quick actions to generate content, or ask a question to verify my knowledge grounding.`
-          : `Hello! I'm the AI Study Assistant for COM 301. I'm strictly grounded in ${indexedDocs.length} document(s) uploaded by Professor Sullivan. Ask me anything about the course materials!`
+          : `Hello! I'm the AI Study Assistant for COM 301. I'm grounded in ${indexedDocs.length} document(s) uploaded by Professor Sullivan. Ask me anything about the course materials!`
       }
     ]
   });
@@ -59,22 +38,14 @@ export default function AiAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Update active sources from the streamed data whenever a response completes
   useEffect(() => {
-    if (isLoading) {
-      setIsSearching(true);
-      setActiveSources([]);
-    } else {
-      setIsSearching(false);
-      const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant' && m.id !== 'init');
-      if (lastAssistant) {
-        setActiveSources(detectSources(lastAssistant.content, indexedDocs));
-      }
+    if (!isLoading && data && data.length > 0) {
+      const latest = [...data].reverse().find(d => d?.sourceDocIds);
+      if (latest) setActiveSourceIds(latest.sourceDocIds);
     }
-  }, [isLoading]);
-
-  const handleQuickAction = (prompt) => {
-    append({ role: 'user', content: prompt });
-  };
+    if (isLoading) setActiveSourceIds([]);
+  }, [isLoading, data]);
 
   const userBubbleColor = isTeacher ? 'rgba(245, 158, 11, 0.15)' : 'var(--primary)';
   const userBubbleBorder = isTeacher ? '1px solid rgba(245, 158, 11, 0.3)' : 'none';
@@ -106,7 +77,7 @@ export default function AiAssistant() {
             {QUICK_ACTIONS.map(action => (
               <button
                 key={action.label}
-                onClick={() => handleQuickAction(action.prompt)}
+                onClick={() => append({ role: 'user', content: action.prompt })}
                 disabled={isLoading}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -114,8 +85,7 @@ export default function AiAssistant() {
                   cursor: isLoading ? 'not-allowed' : 'pointer',
                   background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b',
                   border: '1px solid rgba(245, 158, 11, 0.25)',
-                  opacity: isLoading ? 0.5 : 1,
-                  transition: 'all 0.2s'
+                  opacity: isLoading ? 0.5 : 1, transition: 'all 0.2s'
                 }}
               >
                 <action.icon size={13} /> {action.label}
@@ -154,7 +124,7 @@ export default function AiAssistant() {
             ))}
 
             {/* Searching indicator */}
-            {isSearching && (
+            {isLoading && (
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }}>
                   <Bot size={20} color="var(--primary)" />
@@ -183,7 +153,7 @@ export default function AiAssistant() {
                 className="input-field"
                 placeholder={isTeacher
                   ? 'Ask a verification question, or request quiz / study guide generation...'
-                  : 'Ask about email rules, grading policy, course objectives...'}
+                  : 'Ask about course materials, assignments, policies...'}
                 style={{ padding: '1rem 4rem 1rem 1.25rem', fontSize: '0.95rem', borderRadius: '8px' }}
               />
               <button
@@ -206,7 +176,7 @@ export default function AiAssistant() {
       {/* ── Right Panel ── */}
       <div style={{ width: '268px', display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
 
-        {/* Knowledge Base / Sources */}
+        {/* Knowledge Base */}
         <div className="glass-panel" style={{ padding: '1.25rem' }}>
           <h3 style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <BookOpen size={13} /> Knowledge Base
@@ -217,7 +187,7 @@ export default function AiAssistant() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {indexedDocs.map(doc => {
-                const isActive = activeSources.some(s => s.id === doc.id);
+                const isActive = activeSourceIds.includes(doc.id);
                 return (
                   <div key={doc.id} style={{
                     padding: '0.75rem', borderRadius: '8px',
@@ -228,12 +198,8 @@ export default function AiAssistant() {
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                       <FileText size={13} color={isActive ? 'var(--primary)' : 'var(--muted-foreground)'} style={{ marginTop: '2px', flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontSize: '0.76rem', fontWeight: 600, color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)', marginBottom: '0.3rem', lineHeight: 1.3 }}>{doc.name}</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem' }}>
-                          {doc.topics.slice(0, 3).map(t => (
-                            <span key={t} style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '3px', background: 'rgba(255,255,255,0.06)', color: 'var(--muted-foreground)' }}>{t}</span>
-                          ))}
-                        </div>
+                        <div style={{ fontSize: '0.76rem', fontWeight: 600, color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)', lineHeight: 1.3 }}>{doc.name}</div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>{doc.chunks} chunks</div>
                       </div>
                     </div>
                     {isActive && (
@@ -258,7 +224,7 @@ export default function AiAssistant() {
           <div style={{ padding: '1rem 1.25rem', borderRadius: '10px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#f59e0b', marginBottom: '0.5rem' }}>Teacher Mode</div>
             <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', lineHeight: 1.55 }}>
-              You are verifying the AI's grounding. Use quick actions above to generate ready-to-use course content, or ask questions to stress-test the knowledge boundaries.
+              Verify the AI's grounding. Use quick actions to generate course content, or ask questions to stress-test the knowledge boundaries.
             </p>
             <a href="modules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.75rem', fontSize: '0.74rem', color: '#f59e0b', textDecoration: 'none', fontWeight: 600 }}>
               Manage Documents <ChevronRight size={12} />
@@ -271,7 +237,7 @@ export default function AiAssistant() {
           <div style={{ padding: '1rem 1.25rem', borderRadius: '10px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
             <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--primary)', marginBottom: '0.5rem' }}>Study Tip</div>
             <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', lineHeight: 1.55 }}>
-              This AI only knows what Prof. Sullivan has uploaded. For the best results, ask specific questions about email rules, grading breakdown, or assignment criteria.
+              This AI only knows what Prof. Sullivan has uploaded. Ask specific questions about course policies, assignments, or lecture content for best results.
             </p>
           </div>
         )}

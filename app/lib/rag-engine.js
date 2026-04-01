@@ -88,19 +88,30 @@ export async function indexDocument(docId, text) {
 }
 
 /**
- * Performs similarity search in Pinecone and returns text context.
+ * Performs similarity search in Pinecone and returns text context + source doc IDs.
  */
 export async function getRelevantContext(queryText) {
+  const { context } = await getRelevantContextWithSources(queryText);
+  return context;
+}
+
+export async function getRelevantContextWithSources(queryText) {
   const queryEmbedding = await getQueryEmbedding(queryText);
 
   const pineconeIndex = getIndex();
   const queryResponse = await pineconeIndex.query({
     vector: queryEmbedding,
-    topK: 3,
+    topK: 5,
     includeMetadata: true,
   });
 
-  return queryResponse.matches
+  const matches = queryResponse.matches.filter(m => m.score > 0.5);
+
+  const context = matches
     .map((match) => match.metadata.text)
     .join('\n\n---\n\n');
+
+  const sourceDocIds = [...new Set(matches.map((m) => m.metadata.docId).filter(Boolean))];
+
+  return { context, sourceDocIds };
 }
