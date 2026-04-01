@@ -1,47 +1,51 @@
 import { NextResponse } from 'next/server';
 import { indexDocument } from '@/app/lib/rag-engine';
 
-// pdfjs-dist (used by pdf-parse) calls browser APIs unavailable in Node.js.
-// Stub them out so text extraction works without a headless browser.
+// pdfjs-dist checks for DOMMatrix at import time even when only extracting text.
+// Provide a minimal stub so the module loads without error.
 if (typeof globalThis.DOMMatrix === 'undefined') {
-  class DOMMatrix {
-    constructor() {
-      this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
-      this.m11 = 1; this.m12 = 0; this.m13 = 0; this.m14 = 0;
-      this.m21 = 0; this.m22 = 1; this.m23 = 0; this.m24 = 0;
-      this.m31 = 0; this.m32 = 0; this.m33 = 1; this.m34 = 0;
-      this.m41 = 0; this.m42 = 0; this.m43 = 0; this.m44 = 1;
-      this.is2D = true; this.isIdentity = true;
-    }
-    // All transform methods return a new identity matrix (good enough for text extraction)
-    multiply()          { return new DOMMatrix(); }
-    translate()         { return new DOMMatrix(); }
-    scale()             { return new DOMMatrix(); }
-    rotate()            { return new DOMMatrix(); }
-    rotateAxisAngle()   { return new DOMMatrix(); }
-    rotateFromVector()  { return new DOMMatrix(); }
-    skewX()             { return new DOMMatrix(); }
-    skewY()             { return new DOMMatrix(); }
-    flipX()             { return new DOMMatrix(); }
-    flipY()             { return new DOMMatrix(); }
-    inverse()           { return new DOMMatrix(); }
-    transformPoint(p)   { return p || { x: 0, y: 0, z: 0, w: 1 }; }
-    toFloat32Array()    { return new Float32Array(16); }
-    toFloat64Array()    { return new Float64Array(16); }
-    toString()          { return 'matrix(1, 0, 0, 1, 0, 0)'; }
-    static fromMatrix() { return new DOMMatrix(); }
-    static fromFloat32Array() { return new DOMMatrix(); }
-    static fromFloat64Array() { return new DOMMatrix(); }
-  }
-  globalThis.DOMMatrix = DOMMatrix;
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor() { this.a=1;this.b=0;this.c=0;this.d=1;this.e=0;this.f=0; }
+    static fromMatrix() { return new globalThis.DOMMatrix(); }
+    static fromFloat32Array() { return new globalThis.DOMMatrix(); }
+    static fromFloat64Array() { return new globalThis.DOMMatrix(); }
+  };
 }
 
-if (typeof globalThis.DOMPoint === 'undefined') {
-  globalThis.DOMPoint = class DOMPoint {
-    constructor(x = 0, y = 0, z = 0, w = 1) { this.x = x; this.y = y; this.z = z; this.w = w; }
-    static fromPoint(p) { return new globalThis.DOMPoint(p?.x, p?.y, p?.z, p?.w); }
-    matrixTransform() { return new globalThis.DOMPoint(); }
-  };
+/**
+ * Extract plain text from a PDF buffer using pdfjs-dist's text-content API.
+ * This deliberately avoids the rendering pipeline (Canvas/SVG/DOMMatrix operations)
+ * so it works in Node.js without a browser environment.
+ */
+async function extractPdfText(buffer) {
+  const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+
+  // Disable the worker — not available in Node.js
+  GlobalWorkerOptions.workerSrc = '';
+
+  const loadingTask = getDocument({
+    data: new Uint8Array(buffer),
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    disableFontFace: true,
+  });
+
+  const pdfDoc = await loadingTask.promise;
+  const pageTexts = [];
+
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
+    const page = await pdfDoc.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .filter(item => item.str)
+      .map(item => item.str)
+      .join(' ');
+    pageTexts.push(pageText);
+    page.cleanup();
+  }
+
+  await pdfDoc.destroy();
+  return pageTexts.join('\n');
 }
 
 export async function POST(req) {
@@ -61,9 +65,7 @@ export async function POST(req) {
     const isTXT = file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.md');
 
     if (isPDF) {
-      const pdfParse = (await import('pdf-parse')).default;
-      const data = await pdfParse(buffer);
-      text = data.text;
+      text = await extractPdfText(buffer);
     } else if (isTXT) {
       text = buffer.toString('utf-8');
     } else {
