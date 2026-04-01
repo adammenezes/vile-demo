@@ -40,7 +40,7 @@ ROLE: ${role === 'teacher'
         dataStream.writeData({ sourceDocIds });
 
         const result = streamText({
-          model: google('gemini-1.5-pro'),
+          model: google('gemini-2.5-flash'),
           system: systemPrompt,
           messages,
           temperature: 0.2,
@@ -49,8 +49,8 @@ ROLE: ${role === 'teacher'
         result.mergeIntoDataStream(dataStream);
       },
       onError: (error) => {
-        console.error('Stream error:', error);
-        return 'An error occurred while generating a response.';
+        console.error('Stream error:', error?.message || error);
+        return 'An error occurred while generating a response. Please try again.';
       },
     });
   } catch (error) {

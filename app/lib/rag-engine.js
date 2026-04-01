@@ -1,25 +1,20 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 
-const GEMINI_EMBED_MODEL = 'gemini-embedding-001';
-const GEMINI_EMBED_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EMBED_MODEL}:embedContent`;
+const EMBED_MODEL = 'gemini-embedding-001';
+const EMBED_URL = `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent`;
 
-/**
- * Call the Google Gemini embedding API directly.
- * Returns an array of float arrays, one per input string.
- */
 async function fetchEmbeddings(texts) {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is not set.');
 
   const results = await Promise.all(
     texts.map(async (text) => {
-      const res = await fetch(`${GEMINI_EMBED_URL}?key=${apiKey}`, {
+      const res = await fetch(`${EMBED_URL}?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: `models/${GEMINI_EMBED_MODEL}`,
+          model: `models/${EMBED_MODEL}`,
           content: { parts: [{ text }] },
-          outputDimensionality: 768,
         }),
       });
 
@@ -29,12 +24,26 @@ async function fetchEmbeddings(texts) {
       }
 
       const data = await res.json();
-      return data.embedding.values;
+
+      // ===== DIAGNOSTIC: log raw structure =====
+      console.log('[RAG] Raw embedding API response keys:', Object.keys(data));
+      if (data.embedding) {
+        console.log('[RAG] data.embedding keys:', Object.keys(data.embedding));
+        console.log('[RAG] values length:', data.embedding?.values?.length);
+      } else {
+        console.log('[RAG] FULL RESPONSE (no .embedding key):', JSON.stringify(data).slice(0, 300));
+      }
+      // =========================================
+
+      const values = data?.embedding?.values ?? data?.embeddings?.[0]?.values ?? null;
+      if (!values) throw new Error(`Could not extract embedding values from response: ${JSON.stringify(data).slice(0, 200)}`);
+      return values;
     })
   );
 
   return results;
 }
+
 
 let pc = null;
 let index = null;
@@ -114,9 +123,10 @@ export async function indexDocument(docId, text) {
   if (vectors.length === 0) throw new Error('Embeddings were empty — no vectors to upsert.');
 
   const pineconeIndex = getIndex();
-  // Pinecone JS SDK v3+ expects the array directly, NOT { records: vectors }
-  await pineconeIndex.upsert(vectors);
-  console.log('[RAG] Upsert complete.');
+
+  // Pinecone SDK v7 serverless: upsert takes { records: [...] }
+  await pineconeIndex.upsert({ records: vectors });
+  console.log('[RAG] Upsert complete:', vectors.length, 'vectors stored.');
   return { chunkCount: chunks.length };
 }
 
@@ -132,19 +142,22 @@ export async function getRelevantContextWithSources(queryText) {
   const queryEmbedding = await getQueryEmbedding(queryText);
 
   const pineconeIndex = getIndex();
+
+  // Pinecone SDK v7 serverless indexes use searchRecords() with a query vector
   const queryResponse = await pineconeIndex.query({
     vector: queryEmbedding,
     topK: 5,
     includeMetadata: true,
   });
 
-  const matches = queryResponse.matches.filter(m => m.score > 0.5);
+  const matches = queryResponse.matches?.filter(m => m.score > 0.3) ?? [];
 
   const context = matches
-    .map((match) => match.metadata.text)
+    .map((match) => match.metadata?.text)
+    .filter(Boolean)
     .join('\n\n---\n\n');
 
-  const sourceDocIds = [...new Set(matches.map((m) => m.metadata.docId).filter(Boolean))];
+  const sourceDocIds = [...new Set(matches.map((m) => m.metadata?.docId).filter(Boolean))];
 
   return { context, sourceDocIds };
 }
