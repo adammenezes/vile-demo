@@ -18,7 +18,7 @@ export async function POST(req) {
     const isTXT = file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.md');
 
     if (isPDF) {
-      const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
+      const pdfParse = (await import('pdf-parse')).default;
       const data = await pdfParse(buffer);
       text = data.text;
     } else if (isTXT) {

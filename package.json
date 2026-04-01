@@ -9,10 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.54",
-    "@ai-sdk/react": "^3.0.143",
+    "@ai-sdk/google": "1.2.22",
+    "@ai-sdk/react": "1.2.12",
     "@pinecone-database/pinecone": "^7.1.0",
-    "ai": "^6.0.141",
+    "ai": "4.3.19",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "next": "16.2.1",
