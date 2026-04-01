@@ -19,9 +19,14 @@ if (typeof globalThis.DOMMatrix === 'undefined') {
  */
 async function extractPdfText(buffer) {
   const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const { resolve } = await import('path');
+  const { pathToFileURL } = await import('url');
 
-  // Disable the worker — not available in Node.js
-  GlobalWorkerOptions.workerSrc = '';
+  // pdfjs-dist v5 requires a real workerSrc even in "fake worker" mode.
+  // Point it at the bundled worker file via a file:// URL.
+  GlobalWorkerOptions.workerSrc = pathToFileURL(
+    resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')
+  ).href;
 
   const loadingTask = getDocument({
     data: new Uint8Array(buffer),
