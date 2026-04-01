@@ -1,48 +1,74 @@
 "use client";
 import { useRole } from '../../../components/RoleProvider';
 import { useContentEngine } from '../../../context/ContentEngineContext';
-import { UploadCloud, FileText, CheckCircle2, MoreVertical, Loader2, Database } from "lucide-react";
-import { useState } from "react";
-
-const NEW_DOC_TEMPLATE = {
-  id: 'conflict-resolution',
-  name: "Conflict_Resolution_Framework.pdf",
-  size: "1.8 MB",
-  date: "Sep 02",
-  topics: ["Acknowledgment", "Root Cause", "Negotiation", "Agreement Framework"],
-  chunks: 22,
-};
+import { UploadCloud, FileText, CheckCircle2, MoreVertical, Loader2, Database, AlertCircle } from "lucide-react";
+import { useState, useRef } from "react";
 
 export default function CourseModules() {
   const { role } = useRole();
-  const { docs, addDoc } = useContentEngine();
+  const { docs, registerDoc } = useContentEngine();
   const isTeacher = role === 'teacher';
 
+  const fileInputRef = useRef(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFileName, setUploadingFileName] = useState('');
+  const [uploadError, setUploadError] = useState('');
 
-  const alreadyAdded = docs.some(d => d.id === 'conflict-resolution');
+  const handleFileUpload = async (file) => {
+    if (!file || !isTeacher || isUploading) return;
 
-  const handleSimulateUpload = (e) => {
-    e.preventDefault();
-    if (!isTeacher || isUploading || alreadyAdded) return;
+    setUploadError('');
     setIsUploading(true);
-    setUploadProgress(0);
+    setUploadProgress(10);
+    setUploadingFileName(file.name);
 
-    const steps = [20, 45, 70, 90, 100];
-    steps.forEach((val, i) => {
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + 12, 85));
+    }, 400);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', { method: 'POST', body: formData });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Upload failed');
+      }
+
+      const result = await response.json();
+      const today = new Date();
+      const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+
+      registerDoc({ id: result.docId, name: result.name, size: result.size, date: dateStr, chunks: result.chunkCount });
+
       setTimeout(() => {
-        setUploadProgress(val);
-        if (val === 100) {
-          addDoc(NEW_DOC_TEMPLATE);
-          setTimeout(() => {
-            setIsUploading(false);
-            setUploadProgress(0);
-          }, 600);
-        }
-      }, (i + 1) * 350);
-    });
+        setIsUploading(false);
+        setUploadProgress(0);
+        setUploadingFileName('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }, 700);
+
+    } catch (error) {
+      clearInterval(progressInterval);
+      setUploadError(error.message);
+      setIsUploading(false);
+      setUploadProgress(0);
+      setUploadingFileName('');
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsHovering(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileUpload(file);
   };
 
   return (
@@ -71,56 +97,68 @@ export default function CourseModules() {
             </a>
           </div>
 
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt,.md"
+            style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }}
+          />
+
           <div
-            onClick={handleSimulateUpload}
-            onDragOver={(e) => { e.preventDefault(); if (!alreadyAdded) setIsHovering(true); }}
+            onClick={() => { if (!isUploading) fileInputRef.current?.click(); }}
+            onDragOver={e => { e.preventDefault(); if (!isUploading) setIsHovering(true); }}
             onDragLeave={() => setIsHovering(false)}
-            onMouseEnter={() => { if (!alreadyAdded && !isUploading) setIsHovering(true); }}
+            onDrop={handleDrop}
+            onMouseEnter={() => { if (!isUploading) setIsHovering(true); }}
             onMouseLeave={() => setIsHovering(false)}
             style={{
-              border: `2px dashed ${isHovering ? 'var(--primary)' : 'var(--card-border)'}`,
+              border: `2px dashed ${isHovering ? 'var(--primary)' : uploadError ? '#ef4444' : 'var(--card-border)'}`,
               backgroundColor: isHovering ? 'rgba(59, 130, 246, 0.05)' : 'rgba(255,255,255,0.02)',
               borderRadius: 'var(--radius)', padding: '3rem 2rem', textAlign: 'center',
-              cursor: alreadyAdded ? 'default' : 'pointer',
+              cursor: isUploading ? 'default' : 'pointer',
               transition: 'all 0.2s ease',
-              opacity: alreadyAdded ? 0.55 : 1
             }}
           >
-            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', marginBottom: '1rem' }}>
-              {isUploading ? <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} /> : <UploadCloud size={28} />}
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', background: uploadError ? 'rgba(239,68,68,0.1)' : 'rgba(59, 130, 246, 0.1)', color: uploadError ? '#ef4444' : 'var(--primary)', marginBottom: '1rem' }}>
+              {isUploading ? (
+                <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : uploadError ? (
+                <AlertCircle size={28} />
+              ) : (
+                <UploadCloud size={28} />
+              )}
             </div>
 
             {isUploading ? (
               <div>
-                <h3 style={{ fontWeight: 500, fontSize: '1.05rem', marginBottom: '0.75rem' }}>
-                  Parsing & Chunking Document...
+                <h3 style={{ fontWeight: 500, fontSize: '1.05rem', marginBottom: '0.4rem' }}>
+                  {uploadProgress < 90 ? 'Parsing & chunking document...' : 'Generating embeddings...'}
                 </h3>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>
+                  {uploadingFileName}
+                </p>
                 <div style={{ width: '60%', margin: '0 auto', background: 'rgba(255,255,255,0.08)', borderRadius: '100px', height: '6px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${uploadProgress}%`, background: 'var(--primary)', borderRadius: '100px', transition: 'width 0.3s ease' }} />
                 </div>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: '0.8rem', marginTop: '0.6rem' }}>
-                  {uploadProgress}% — Generating embeddings...
-                </p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: '0.8rem', marginTop: '0.6rem' }}>{uploadProgress}%</p>
               </div>
-            ) : alreadyAdded ? (
+            ) : uploadError ? (
               <div>
-                <h3 style={{ fontWeight: 500, fontSize: '1.05rem', marginBottom: '0.4rem', color: 'var(--muted-foreground)' }}>
-                  Demo document already indexed
-                </h3>
-                <p style={{ color: 'var(--muted-foreground)', fontSize: '0.82rem' }}>
-                  Remove it from the Content Engine to re-upload.
-                </p>
+                <h3 style={{ fontWeight: 500, fontSize: '1.05rem', marginBottom: '0.4rem', color: '#ef4444' }}>Upload failed</h3>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: '0.82rem', marginBottom: '0.5rem' }}>{uploadError}</p>
+                <p style={{ color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 500 }}>Click to try again</p>
               </div>
             ) : (
               <>
                 <h3 style={{ fontWeight: 500, fontSize: '1.05rem', marginBottom: '0.5rem' }}>
-                  Click or drag a PDF to index
+                  Click or drag a file to index
                 </h3>
                 <p style={{ color: 'var(--muted-foreground)', fontSize: '0.85rem' }}>
-                  Documents uploaded here become the strict knowledge base for the Course AI Assistant.
+                  Documents uploaded here become the knowledge base for the Course AI Assistant.
                 </p>
-                <p style={{ color: 'var(--primary)', fontSize: '0.78rem', marginTop: '0.5rem', fontWeight: 500 }}>
-                  Demo: click to upload "Conflict_Resolution_Framework.pdf"
+                <p style={{ color: 'var(--muted-foreground)', fontSize: '0.78rem', marginTop: '0.4rem' }}>
+                  Supported formats: PDF, TXT, MD
                 </p>
               </>
             )}

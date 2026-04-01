@@ -78,6 +78,10 @@ export function ContentEngineProvider({ children }) {
     }
   };
 
+  const registerDoc = (metadata) => {
+    setDocs(prev => [...prev, { ...metadata, status: 'indexed' }]);
+  };
+
   const removeDoc = (id) => {
     setDocs(prev => prev.filter(d => d.id !== id));
   };
@@ -104,7 +108,7 @@ CRITICAL RULES:
   };
 
   return (
-    <ContentEngineContext.Provider value={{ docs, addDoc, removeDoc, indexedDocs, totalChunks, buildSystemPrompt }}>
+    <ContentEngineContext.Provider value={{ docs, addDoc, registerDoc, removeDoc, indexedDocs, totalChunks, buildSystemPrompt }}>
       {children}
     </ContentEngineContext.Provider>
   );
