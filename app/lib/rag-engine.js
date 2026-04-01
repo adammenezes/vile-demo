@@ -2,8 +2,11 @@ import { Pinecone } from '@pinecone-database/pinecone';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { embed, embedMany } from 'ai';
 
-// text-embedding-004 is only available on the v1 API, not v1beta (the SDK default)
-const google = createGoogleGenerativeAI({ apiVersion: 'v1' });
+// text-embedding-004 is only available on the v1 API.
+// @ai-sdk/google hardcodes v1beta as its baseURL — override it explicitly.
+const google = createGoogleGenerativeAI({
+  baseURL: 'https://generativelanguage.googleapis.com/v1',
+});
 
 let pc = null;
 let index = null;
