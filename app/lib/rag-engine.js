@@ -97,7 +97,8 @@ export async function getDocumentEmbeddings(chunks) {
  * Upserts embedded chunks to Pinecone.
  */
 export async function indexDocument(docId, text) {
-  const chunks = chunkText(text);
+  const chunks = chunkText(text).filter(c => c.trim().length > 0);
+  if (chunks.length === 0) throw new Error('No usable text content could be extracted from the document.');
   const embeddings = await getDocumentEmbeddings(chunks);
 
   const vectors = chunks.map((chunk, i) => ({
