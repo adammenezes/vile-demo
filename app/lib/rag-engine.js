@@ -1,7 +1,7 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 
 const GEMINI_EMBED_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-exp-03-07:batchEmbedContents';
 
 /**
  * Call the Google Gemini embedding API directly.
@@ -16,7 +16,7 @@ async function fetchEmbeddings(texts) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       requests: texts.map(text => ({
-        model: 'models/text-embedding-004',
+        model: 'models/gemini-embedding-exp-03-07',
         content: { parts: [{ text }] },
       })),
     }),
