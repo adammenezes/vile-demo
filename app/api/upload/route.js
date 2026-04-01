@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { indexDocument } from '@/app/lib/rag-engine';
 
-// pdfjs-dist (used internally by pdf-parse) requires browser APIs not present in Node.js
+// pdfjs-dist (used by pdf-parse) calls browser APIs unavailable in Node.js.
+// Stub them out so text extraction works without a headless browser.
 if (typeof globalThis.DOMMatrix === 'undefined') {
-  globalThis.DOMMatrix = class DOMMatrix {
+  class DOMMatrix {
     constructor() {
       this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
       this.m11 = 1; this.m12 = 0; this.m13 = 0; this.m14 = 0;
@@ -12,12 +13,34 @@ if (typeof globalThis.DOMMatrix === 'undefined') {
       this.m41 = 0; this.m42 = 0; this.m43 = 0; this.m44 = 1;
       this.is2D = true; this.isIdentity = true;
     }
-    multiply() { return new globalThis.DOMMatrix(); }
-    translate() { return new globalThis.DOMMatrix(); }
-    scale() { return new globalThis.DOMMatrix(); }
-    rotate() { return new globalThis.DOMMatrix(); }
-    inverse() { return new globalThis.DOMMatrix(); }
-    transformPoint(p) { return p || { x: 0, y: 0 }; }
+    // All transform methods return a new identity matrix (good enough for text extraction)
+    multiply()          { return new DOMMatrix(); }
+    translate()         { return new DOMMatrix(); }
+    scale()             { return new DOMMatrix(); }
+    rotate()            { return new DOMMatrix(); }
+    rotateAxisAngle()   { return new DOMMatrix(); }
+    rotateFromVector()  { return new DOMMatrix(); }
+    skewX()             { return new DOMMatrix(); }
+    skewY()             { return new DOMMatrix(); }
+    flipX()             { return new DOMMatrix(); }
+    flipY()             { return new DOMMatrix(); }
+    inverse()           { return new DOMMatrix(); }
+    transformPoint(p)   { return p || { x: 0, y: 0, z: 0, w: 1 }; }
+    toFloat32Array()    { return new Float32Array(16); }
+    toFloat64Array()    { return new Float64Array(16); }
+    toString()          { return 'matrix(1, 0, 0, 1, 0, 0)'; }
+    static fromMatrix() { return new DOMMatrix(); }
+    static fromFloat32Array() { return new DOMMatrix(); }
+    static fromFloat64Array() { return new DOMMatrix(); }
+  }
+  globalThis.DOMMatrix = DOMMatrix;
+}
+
+if (typeof globalThis.DOMPoint === 'undefined') {
+  globalThis.DOMPoint = class DOMPoint {
+    constructor(x = 0, y = 0, z = 0, w = 1) { this.x = x; this.y = y; this.z = z; this.w = w; }
+    static fromPoint(p) { return new globalThis.DOMPoint(p?.x, p?.y, p?.z, p?.w); }
+    matrixTransform() { return new globalThis.DOMPoint(); }
   };
 }
 
