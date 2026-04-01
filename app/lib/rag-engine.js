@@ -1,7 +1,7 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 
-const GEMINI_EMBED_URL =
-  'https://generativelanguage.googleapis.com/v1/models/text-embedding-004:batchEmbedContents';
+const GEMINI_EMBED_MODEL = 'gemini-embedding-001';
+const GEMINI_EMBED_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EMBED_MODEL}:embedContent`;
 
 /**
  * Call the Google Gemini embedding API directly.
@@ -11,24 +11,28 @@ async function fetchEmbeddings(texts) {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is not set.');
 
-  const res = await fetch(`${GEMINI_EMBED_URL}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      requests: texts.map(text => ({
-        model: 'models/text-embedding-004',
-        content: { parts: [{ text }] },
-      })),
-    }),
-  });
+  const results = await Promise.all(
+    texts.map(async (text) => {
+      const res = await fetch(`${GEMINI_EMBED_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: `models/${GEMINI_EMBED_MODEL}`,
+          content: { parts: [{ text }] },
+        }),
+      });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Embedding API error ${res.status}: ${err}`);
-  }
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Embedding API error ${res.status}: ${err}`);
+      }
 
-  const data = await res.json();
-  return data.embeddings.map(e => e.values);
+      const data = await res.json();
+      return data.embedding.values;
+    })
+  );
+
+  return results;
 }
 
 let pc = null;
