@@ -19,7 +19,7 @@ async function fetchEmbeddings(texts) {
         body: JSON.stringify({
           model: `models/${GEMINI_EMBED_MODEL}`,
           content: { parts: [{ text }] },
-          outputDimensionality: 3072,
+          outputDimensionality: 768,
         }),
       });
 
@@ -98,20 +98,25 @@ export async function getDocumentEmbeddings(chunks) {
  */
 export async function indexDocument(docId, text) {
   const chunks = chunkText(text).filter(c => c.trim().length > 0);
+  console.log('[RAG] text length:', text.length, '| chunks:', chunks.length);
   if (chunks.length === 0) throw new Error('No usable text content could be extracted from the document.');
+
   const embeddings = await getDocumentEmbeddings(chunks);
+  console.log('[RAG] embeddings received:', embeddings.length, '| first dim:', embeddings[0]?.length);
 
   const vectors = chunks.map((chunk, i) => ({
     id: `${docId}-chunk-${i}`,
     values: embeddings[i],
-    metadata: {
-      text: chunk,
-      docId: docId,
-    },
-  }));
+    metadata: { text: chunk, docId },
+  })).filter(v => Array.isArray(v.values) && v.values.length > 0);
+
+  console.log('[RAG] vectors to upsert:', vectors.length);
+  if (vectors.length === 0) throw new Error('Embeddings were empty — no vectors to upsert.');
 
   const pineconeIndex = getIndex();
+  // Pinecone JS SDK v3+ expects the array directly, NOT { records: vectors }
   await pineconeIndex.upsert(vectors);
+  console.log('[RAG] Upsert complete.');
   return { chunkCount: chunks.length };
 }
 
