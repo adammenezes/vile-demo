@@ -18,13 +18,13 @@ export default function Dashboard() {
           <BookOpen size={16} /> All Courses
         </div>
       </div>
-      
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
         {courses.map(course => (
           <Link key={course.id} href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
             <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', transition: 'transform 0.2s', cursor: 'pointer', height: '100%' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
               <div style={{ height: '140px', background: course.color, position: 'relative' }}>
-                 <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'white', color: 'black', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>{course.code}</div>
+                <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', background: 'white', color: 'black', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>{course.code}</div>
               </div>
               <div style={{ padding: '1.25rem 1.5rem' }}>
                 <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--foreground)' }}>{course.title}</h2>

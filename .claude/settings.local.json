@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersbugsmDocumentsAntigravityLMS_DEMO -type f -name next.config.* -o -name package.json -o -name vercel.json)",
+      "Bash(grep -E \"\\\\.\\(json|mjs|js\\)$\")",
+      "WebFetch(domain:mcgraw-hill-demo.vercel.app)",
+      "Bash(gh api:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const ai = require\\('ai'\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.toLowerCase\\(\\).includes\\('stream'\\) || k.toLowerCase\\(\\).includes\\('data'\\)\\).sort\\(\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const ai = require\\('ai'\\); const r = ai.streamText\\({ model: { doStream: async \\(\\) => \\({stream: new ReadableStream\\(\\), rawCall: {}, rawResponse: {}}\\) }, messages: [] }\\); console.log\\(typeof r.toDataStreamResponse\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.includes\\('Data'\\) || k.includes\\('Stream'\\)\\).sort\\(\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const ai = require\\('ai'\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.includes\\('Data'\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const r = require\\('@ai-sdk/react'\\); console.log\\(Object.keys\\(r\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const ai = require\\('ai'\\); console.log\\(ai.createUIMessageStreamResponse.toString\\(\\).substring\\(0, 500\\)\\)\")",
+      "Bash(node -e \"const ai = require\\('ai'\\); console.log\\(Object.keys\\(ai\\).filter\\(k => !k.startsWith\\('_'\\)\\).sort\\(\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e ':*)",
+      "Bash(node -e \"const ai = require\\('ai'\\); const src = ai.createUIMessageStream.toString\\(\\); console.log\\(src.substring\\(0, 2000\\)\\)\")",
+      "Bash(node -e \"const ai = require\\('ai'\\); console.log\\(JSON.stringify\\(ai.uiMessageChunkSchema, null, 2\\)\\)\")",
+      "Bash(npm show:*)",
+      "Bash(node -e \"const v=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(v.filter\\(x=>x.startsWith\\('4.'\\)\\).slice\\(-10\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const ai = require\\('ai'\\); console.log\\('createDataStreamResponse:', typeof ai.createDataStreamResponse\\); console.log\\('StreamData:', typeof ai.StreamData\\);\")",
+      "Bash(node -e \"const r = require\\('@ai-sdk/react'\\); const fns = Object.keys\\(r\\); console.log\\('useChat:', typeof r.useChat\\); const src = r.useChat.toString\\(\\); const hasInput = src.includes\\('handleInputChange'\\) || src.includes\\('input'\\); console.log\\('has input:', hasInput\\);\")",
+      "Bash(npm run:*)"
+    ]
+  }
+}

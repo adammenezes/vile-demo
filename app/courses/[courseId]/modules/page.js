@@ -38,8 +38,11 @@ export default function CourseModules() {
       setUploadProgress(100);
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Upload failed');
+        const contentType = response.headers.get('content-type') || '';
+        const errBody = contentType.includes('application/json')
+          ? (await response.json()).error
+          : await response.text();
+        throw new Error(errBody || `Upload failed (${response.status})`);
       }
 
       const result = await response.json();
