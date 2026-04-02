@@ -15,7 +15,7 @@ export default function RootLayout({ children }) {
         <RoleProvider>
           <ContentEngineProvider>
             <GlobalSidebar />
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--background)' }}>
+            <div className="main-content-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--background)' }}>
               <main style={{ flex: 1, overflowY: 'auto' }}>
                 {children}
               </main>

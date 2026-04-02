@@ -28,7 +28,7 @@ export default function CourseLayout({ children, params }) {
   return (
     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
       {/* ── Secondary Course Sidebar ── */}
-      <div style={{
+      <div className="course-sidebar" style={{
         width: '230px', flexShrink: 0,
         padding: '2rem 1rem 2rem 1.25rem',
         borderRight: '1px solid var(--card-border)',

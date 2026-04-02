@@ -106,7 +106,7 @@ export default function AiAssistant() {
   };
 
   return (
-    <div style={{
+    <div className="ai-page-wrapper" style={{
       display: 'flex', gap: '1rem',
       height: 'calc(100vh - 5rem)',
       animation: 'fadeIn 0.5s ease-out',
@@ -114,7 +114,7 @@ export default function AiAssistant() {
     }}>
 
       {/* ══════════════════ SOURCES PANEL ══════════════════ */}
-      <div style={{ width: '252px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+      <div className="ai-sources-panel" style={{ width: '252px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
           background: 'rgba(8,8,24,0.8)',
@@ -287,7 +287,7 @@ export default function AiAssistant() {
       </div>
 
       {/* ══════════════════ CHAT PANEL ══════════════════ */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div className="ai-chat-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
           border: `1px solid ${isTeacher ? 'rgba(245,158,11,0.2)' : 'var(--card-border)'}`,
@@ -443,7 +443,7 @@ export default function AiAssistant() {
       </div>
 
       {/* ══════════════════ STUDIO PANEL ══════════════════ */}
-      <div style={{ width: '252px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+      <div className="ai-studio-panel" style={{ width: '252px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
           background: 'rgba(8,8,24,0.8)',

@@ -54,7 +54,7 @@ export default function Dashboard() {
       </div>
 
       {/* Courses grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+      <div className="course-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
         {courses.map((course, i) => (
           <Link key={course.id} href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
             <div

@@ -18,7 +18,7 @@ export default function GlobalSidebar() {
   const isTeacher = role === 'teacher';
 
   return (
-    <div style={{
+    <div className="global-sidebar" style={{
       width: '80px',
       background: 'var(--sidebar-bg)',
       borderRight: '1px solid var(--card-border)',
@@ -38,7 +38,7 @@ export default function GlobalSidebar() {
       }} />
 
       {/* Brand */}
-      <div style={{
+      <div className="sidebar-brand" style={{
         marginBottom: '2rem',
         padding: '0.6rem',
         borderRadius: '14px',
@@ -52,12 +52,12 @@ export default function GlobalSidebar() {
       </div>
 
       {/* Nav items */}
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '0.15rem' }}>
+      <div className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '0.15rem' }}>
         {menuItems.map((item, i) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
           return (
             <Link key={i} href={item.href} style={{ textDecoration: 'none' }}>
-              <div style={{
+              <div className="sidebar-nav-item" style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem',
                 padding: '0.7rem 0', width: '100%', position: 'relative',
                 color: isActive ? '#a5b4fc' : 'var(--muted-foreground)',
@@ -95,7 +95,7 @@ export default function GlobalSidebar() {
       </div>
 
       {/* Role toggle */}
-      <div style={{ marginTop: 'auto', padding: '0 0.75rem', width: '100%' }}>
+      <div className="sidebar-role" style={{ marginTop: 'auto', padding: '0 0.75rem', width: '100%' }}>
         <button
           onClick={() => setRole(isTeacher ? 'student' : 'teacher')}
           title={`Switch to ${isTeacher ? 'Student' : 'Teacher'} mode`}

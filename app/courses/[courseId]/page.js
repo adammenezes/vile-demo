@@ -88,7 +88,7 @@ export default function CourseHome() {
       </div>
 
       {/* Two-col info */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', animation: 'fadeIn 0.5s 0.2s ease-out both' }}>
+      <div className="two-col-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', animation: 'fadeIn 0.5s 0.2s ease-out both' }}>
 
         {/* Learning objectives */}
         <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
