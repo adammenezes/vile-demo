@@ -5,14 +5,14 @@ import { useContentEngine } from '../../../context/ContentEngineContext';
 import { useRef, useState, useEffect } from 'react';
 import {
   Plus, FileText, CheckCircle2, Loader2, Trash2, Send, Bot, User,
-  Sparkles, BookOpen, Brain, TrendingUp, UploadCloud, AlertCircle
+  Sparkles, BookOpen, Brain, TrendingUp, UploadCloud, AlertCircle, Zap, X
 } from 'lucide-react';
 
 const STUDIO_ACTIONS = [
-  { label: 'Study Guide', icon: BookOpen, color: '#3b82f6', prompt: 'Create a comprehensive study guide covering every key concept from all indexed course materials. Use clear section headers and bullet points.' },
-  { label: 'Generate Quiz', icon: Sparkles, color: '#f59e0b', prompt: 'Generate a 5-question multiple-choice quiz with answer key based on all indexed course materials. Number each question and label the options A–D.' },
-  { label: 'Practice Scenarios', icon: Brain, color: '#10b981', prompt: 'Write 3 realistic professional communication practice scenarios based on the course content. Include a grading rubric for each scenario.' },
-  { label: 'Weekly Recap', icon: TrendingUp, color: '#a855f7', prompt: 'Write a weekly recap summarizing the key takeaways from the indexed course materials in an engaging tone.' },
+  { label: 'Study Guide', icon: BookOpen, color: '#6366f1', glow: 'rgba(99,102,241,0.3)', prompt: 'Create a comprehensive study guide covering every key concept from all indexed course materials. Use clear section headers and bullet points.' },
+  { label: 'Generate Quiz', icon: Sparkles, color: '#f59e0b', glow: 'rgba(245,158,11,0.3)', prompt: 'Generate a 5-question multiple-choice quiz with answer key based on all indexed course materials. Number each question and label the options A–D.' },
+  { label: 'Practice Scenarios', icon: Brain, color: '#10b981', glow: 'rgba(16,185,129,0.3)', prompt: 'Write 3 realistic professional communication practice scenarios based on the course content. Include a grading rubric for each scenario.' },
+  { label: 'Weekly Recap', icon: TrendingUp, color: '#a855f7', glow: 'rgba(168,85,247,0.3)', prompt: 'Write a weekly recap summarizing the key takeaways from the indexed course materials in an engaging tone.' },
 ];
 
 export default function AiAssistant() {
@@ -20,7 +20,6 @@ export default function AiAssistant() {
   const { docs, indexedDocs, totalChunks, registerDoc, removeDoc } = useContentEngine();
   const isTeacher = role === 'teacher';
 
-  // Upload state
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -28,31 +27,22 @@ export default function AiAssistant() {
   const [uploadError, setUploadError] = useState('');
   const [isHovering, setIsHovering] = useState(false);
   const [showUploadZone, setShowUploadZone] = useState(false);
-
-  // Source citation state
   const [activeSourceIds, setActiveSourceIds] = useState([]);
-
-  // Studio state
   const [studioOutput, setStudioOutput] = useState('');
 
   const messagesEndRef = useRef(null);
 
-  // Main chat
   const { messages, input, handleInputChange, handleSubmit, isLoading, append, data } = useChat({
     api: '/api/chat',
     body: { role },
-    initialMessages: [
-      {
-        id: 'init',
-        role: 'assistant',
-        content: isTeacher
-          ? `Welcome back, Professor Sullivan! ${indexedDocs.length} source(s) loaded — ${totalChunks} chunks indexed. Add sources using the panel on the left, or use the Studio to generate course materials.`
-          : `Hello! I'm grounded in ${indexedDocs.length} source(s) uploaded by Prof. Sullivan. Ask me anything about the course materials.`
-      }
-    ]
+    initialMessages: [{
+      id: 'init', role: 'assistant',
+      content: isTeacher
+        ? `Welcome back, Professor Sullivan! ${indexedDocs.length} source(s) loaded — ${totalChunks} chunks indexed. Add sources using the panel on the left, or use the Studio to generate course materials.`
+        : `Hello! I'm grounded in ${indexedDocs.length} source(s) uploaded by Prof. Sullivan. Ask me anything about the course materials.`
+    }]
   });
 
-  // Studio chat — separate instance for content generation
   const { append: studioAppend, isLoading: studioLoading, messages: studioMessages } = useChat({
     api: '/api/chat',
     body: { role: 'teacher' },
@@ -116,28 +106,61 @@ export default function AiAssistant() {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '1rem', height: 'calc(100vh - 6rem)', animation: 'fadeIn 0.5s ease-out', overflow: 'hidden' }}>
+    <div style={{
+      display: 'flex', gap: '1rem',
+      height: 'calc(100vh - 5rem)',
+      animation: 'fadeIn 0.5s ease-out',
+      overflow: 'hidden',
+    }}>
 
-      {/* ── Sources Panel ── */}
-      <div style={{ width: '248px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
-
-          {/* Header */}
-          <div style={{ padding: '1rem 1.1rem', borderBottom: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Sources</span>
+      {/* ══════════════════ SOURCES PANEL ══════════════════ */}
+      <div style={{ width: '252px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          background: 'rgba(8,8,24,0.8)',
+          border: '1px solid var(--card-border)',
+          borderRadius: 'var(--radius)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: 'var(--shadow-card)',
+        }}>
+          {/* Panel Header */}
+          <div style={{
+            padding: '0.9rem 1rem', flexShrink: 0,
+            borderBottom: '1px solid var(--card-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'rgba(99,102,241,0.04)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <FileText size={13} color="#a5b4fc" />
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
+                Sources
+              </span>
+            </div>
             {isTeacher && (
               <button
                 onClick={() => { setShowUploadZone(v => !v); setUploadError(''); }}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.6rem', borderRadius: '6px', fontSize: '0.73rem', fontWeight: 600, background: 'rgba(59,130,246,0.1)', color: 'var(--primary)', border: '1px solid rgba(59,130,246,0.2)', cursor: 'pointer' }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.3rem',
+                  padding: '0.25rem 0.55rem', borderRadius: '6px',
+                  fontSize: '0.7rem', fontWeight: 700,
+                  background: showUploadZone ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.1)',
+                  color: '#a5b4fc',
+                  border: '1px solid rgba(99,102,241,0.25)',
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.25)'}
+                onMouseLeave={e => e.currentTarget.style.background = showUploadZone ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.1)'}
               >
-                <Plus size={12} /> Add
+                {showUploadZone ? <X size={11} /> : <Plus size={11} />}
+                {showUploadZone ? 'Close' : 'Add'}
               </button>
             )}
           </div>
 
-          {/* Inline upload zone */}
+          {/* Upload Zone */}
           {isTeacher && showUploadZone && (
-            <div style={{ padding: '0.65rem', borderBottom: '1px solid var(--card-border)', flexShrink: 0 }}>
+            <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--card-border)', flexShrink: 0, animation: 'fadeIn 0.2s ease-out' }}>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -151,62 +174,76 @@ export default function AiAssistant() {
                 onDragLeave={() => setIsHovering(false)}
                 onDrop={e => { e.preventDefault(); setIsHovering(false); const f = e.dataTransfer.files?.[0]; if (f) handleFileUpload(f); }}
                 style={{
-                  border: `1.5px dashed ${isHovering ? 'var(--primary)' : uploadError ? '#ef4444' : 'var(--card-border)'}`,
-                  borderRadius: '8px', padding: '1rem 0.75rem', textAlign: 'center',
+                  border: `1.5px dashed ${isHovering ? '#6366f1' : uploadError ? '#f43f5e' : 'rgba(99,102,241,0.3)'}`,
+                  borderRadius: '10px',
+                  padding: '1.1rem 0.75rem',
+                  textAlign: 'center',
                   cursor: isUploading ? 'default' : 'pointer',
-                  background: isHovering ? 'rgba(59,130,246,0.05)' : 'transparent',
-                  transition: 'all 0.2s'
+                  background: isHovering ? 'rgba(99,102,241,0.07)' : 'rgba(99,102,241,0.02)',
+                  transition: 'all 0.2s ease',
+                  boxShadow: isHovering ? '0 0 20px rgba(99,102,241,0.15)' : 'none',
                 }}
               >
                 {isUploading ? (
                   <div>
-                    <Loader2 size={18} color="var(--primary)" style={{ animation: 'spin 1s linear infinite', marginBottom: '0.4rem' }} />
-                    <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadingFileName}</div>
-                    <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '100px', height: '4px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${uploadProgress}%`, background: 'var(--primary)', borderRadius: '100px', transition: 'width 0.3s ease' }} />
+                    <Loader2 size={20} color="#a5b4fc" style={{ animation: 'spin 1s linear infinite', marginBottom: '0.4rem' }} />
+                    <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.6rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {uploadingFileName}
                     </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--muted-foreground)', marginTop: '0.3rem' }}>{uploadProgress}%</div>
+                    <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '100px', height: '5px', overflow: 'hidden' }}>
+                      <div className="progress-shimmer" style={{ height: '100%', width: `${uploadProgress}%`, borderRadius: '100px', transition: 'width 0.3s ease' }} />
+                    </div>
+                    <div style={{ fontSize: '0.62rem', color: 'var(--muted-foreground)', marginTop: '0.35rem' }}>{uploadProgress}%</div>
                   </div>
                 ) : uploadError ? (
                   <div>
-                    <AlertCircle size={16} color="#ef4444" style={{ marginBottom: '0.3rem' }} />
-                    <div style={{ fontSize: '0.72rem', color: '#ef4444', marginBottom: '0.2rem' }}>Upload failed</div>
-                    <div style={{ fontSize: '0.66rem', color: 'var(--muted-foreground)' }}>{uploadError}</div>
-                    <div style={{ fontSize: '0.66rem', color: 'var(--primary)', marginTop: '0.3rem' }}>Click to retry</div>
+                    <AlertCircle size={18} color="#f43f5e" style={{ marginBottom: '0.3rem' }} />
+                    <div style={{ fontSize: '0.72rem', color: '#f43f5e', fontWeight: 600, marginBottom: '0.2rem' }}>Upload failed</div>
+                    <div style={{ fontSize: '0.64rem', color: 'var(--muted-foreground)', lineHeight: 1.4, marginBottom: '0.4rem' }}>{uploadError}</div>
+                    <div style={{ fontSize: '0.65rem', color: '#a5b4fc', fontWeight: 600 }}>Click to retry</div>
                   </div>
                 ) : (
                   <div>
-                    <UploadCloud size={18} color="var(--muted-foreground)" style={{ marginBottom: '0.35rem' }} />
-                    <div style={{ fontSize: '0.73rem', color: 'var(--muted-foreground)' }}>Click or drop file</div>
-                    <div style={{ fontSize: '0.63rem', color: 'var(--muted-foreground)', marginTop: '0.2rem', opacity: 0.7 }}>PDF · TXT · MD</div>
+                    <UploadCloud size={20} color={isHovering ? '#a5b4fc' : 'var(--muted-foreground)'} style={{ marginBottom: '0.4rem', transition: 'color 0.2s' }} />
+                    <div style={{ fontSize: '0.75rem', color: isHovering ? 'var(--foreground)' : 'var(--muted-foreground)', fontWeight: 500, transition: 'color 0.2s' }}>
+                      Click or drop file
+                    </div>
+                    <div style={{ fontSize: '0.62rem', color: 'var(--muted-foreground)', marginTop: '0.2rem', opacity: 0.7 }}>PDF · TXT · MD</div>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Source list */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0.65rem' }}>
+          {/* Source List */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0.6rem' }}>
             {docs.length === 0 ? (
-              <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', fontStyle: 'italic', textAlign: 'center', paddingTop: '1.25rem' }}>
-                No sources added yet.
-              </p>
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <FileText size={28} color="rgba(99,102,241,0.2)" style={{ marginBottom: '0.5rem' }} />
+                <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontStyle: 'italic', lineHeight: 1.5 }}>
+                  No sources added yet.{isTeacher ? ' Click + Add to upload.' : ''}
+                </p>
+              </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 {docs.map(doc => {
                   const isActive = activeSourceIds.includes(doc.id);
                   return (
                     <div key={doc.id} style={{
-                      padding: '0.6rem 0.7rem', borderRadius: '8px',
-                      border: `1px solid ${isActive ? 'rgba(59,130,246,0.5)' : 'var(--card-border)'}`,
-                      background: isActive ? 'rgba(59,130,246,0.07)' : 'rgba(255,255,255,0.02)',
+                      padding: '0.65rem 0.75rem',
+                      borderRadius: '10px',
+                      border: `1px solid ${isActive ? 'rgba(99,102,241,0.45)' : 'var(--card-border)'}`,
+                      background: isActive ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
                       transition: 'all 0.3s ease',
-                      display: 'flex', alignItems: 'flex-start', gap: '0.5rem'
+                      display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+                      boxShadow: isActive ? '0 0 16px rgba(99,102,241,0.15)' : 'none',
                     }}>
-                      <FileText size={12} color={isActive ? 'var(--primary)' : 'var(--muted-foreground)'} style={{ marginTop: '3px', flexShrink: 0 }} />
+                      <FileText size={12} color={isActive ? '#a5b4fc' : 'var(--muted-foreground)'} style={{ marginTop: '3px', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.name}</div>
-                        <div style={{ fontSize: '0.64rem', color: 'var(--muted-foreground)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {doc.name}
+                        </div>
+                        <div style={{ fontSize: '0.63rem', color: 'var(--muted-foreground)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                           {doc.status === 'indexing' ? (
                             <><Loader2 size={9} style={{ animation: 'spin 1s linear infinite' }} /> Indexing...</>
                           ) : (
@@ -214,17 +251,17 @@ export default function AiAssistant() {
                           )}
                         </div>
                         {isActive && (
-                          <div style={{ fontSize: '0.63rem', color: 'var(--primary)', marginTop: '3px', fontWeight: 600 }}>
-                            Referenced
+                          <div style={{ fontSize: '0.62rem', color: '#a5b4fc', marginTop: '4px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <Zap size={9} /> Referenced
                           </div>
                         )}
                       </div>
                       {isTeacher && (
                         <button
                           onClick={() => removeDoc(doc.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: '1px', display: 'flex', flexShrink: 0, transition: 'color 0.15s' }}
-                          onMouseOver={e => e.currentTarget.style.color = '#ef4444'}
-                          onMouseOut={e => e.currentTarget.style.color = 'var(--muted-foreground)'}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: '2px', flexShrink: 0, transition: 'color 0.15s', fontFamily: 'inherit' }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#f43f5e'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--muted-foreground)'}
                         >
                           <Trash2 size={11} />
                         </button>
@@ -236,66 +273,127 @@ export default function AiAssistant() {
             )}
           </div>
 
-          {/* Footer */}
-          <div style={{ padding: '0.65rem 1rem', borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: 'var(--muted-foreground)', flexShrink: 0 }}>
+          {/* Footer stats */}
+          <div style={{
+            padding: '0.6rem 1rem', borderTop: '1px solid var(--card-border)',
+            display: 'flex', justifyContent: 'space-between',
+            fontSize: '0.62rem', color: 'var(--muted-foreground)', flexShrink: 0,
+            background: 'rgba(0,0,0,0.2)',
+          }}>
             <span>{indexedDocs.length} sources</span>
             <span>{totalChunks} chunks</span>
           </div>
         </div>
       </div>
 
-      {/* ── Chat Panel ── */}
+      {/* ══════════════════ CHAT PANEL ══════════════════ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
-
-          {/* Header */}
-          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--card-border)', flexShrink: 0 }}>
-            <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>AI Study Assistant</div>
-            <div style={{ fontSize: '0.73rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
-              {isTeacher
-                ? 'Teacher Mode · Verify grounding · Test student experience'
-                : `Grounded in ${indexedDocs.length} source(s) from Prof. Sullivan`}
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          border: `1px solid ${isTeacher ? 'rgba(245,158,11,0.2)' : 'var(--card-border)'}`,
+          borderRadius: 'var(--radius)',
+          backdropFilter: 'blur(20px)',
+          background: 'rgba(6,6,18,0.8)',
+          boxShadow: isTeacher ? '0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(245,158,11,0.08)' : 'var(--shadow-card)',
+        }}>
+          {/* Chat Header */}
+          <div style={{
+            padding: '1rem 1.5rem', flexShrink: 0,
+            borderBottom: `1px solid ${isTeacher ? 'rgba(245,158,11,0.15)' : 'var(--card-border)'}`,
+            background: isTeacher ? 'rgba(245,158,11,0.04)' : 'rgba(99,102,241,0.04)',
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+          }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: isTeacher
+                ? 'linear-gradient(135deg, rgba(245,158,11,0.3), rgba(251,146,60,0.2))'
+                : 'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(139,92,246,0.2))',
+              border: `1px solid ${isTeacher ? 'rgba(245,158,11,0.3)' : 'rgba(99,102,241,0.3)'}`,
+              boxShadow: isTeacher ? '0 0 12px rgba(245,158,11,0.2)' : '0 0 12px rgba(99,102,241,0.2)',
+            }}>
+              <Bot size={18} color={isTeacher ? '#fcd34d' : '#a5b4fc'} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
+                AI Study Assistant
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
+                {isTeacher ? 'Teacher Mode · Verifying grounding' : `Grounded in ${indexedDocs.length} source(s)`}
+              </div>
             </div>
           </div>
 
           {/* Messages */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {messages.map(m => (
-              <div key={m.id} style={{ display: 'flex', gap: '0.75rem', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
+            {messages.map((m, idx) => (
+              <div
+                key={m.id}
+                style={{
+                  display: 'flex', gap: '0.75rem',
+                  flexDirection: m.role === 'user' ? 'row-reverse' : 'row',
+                  animation: `slideInUp 0.3s ease-out both`,
+                  animationDelay: `${idx * 0.03}s`,
+                }}
+              >
+                {/* Avatar */}
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: m.role === 'user'
-                    ? (isTeacher ? 'rgba(217,119,6,0.85)' : 'var(--primary)')
-                    : 'rgba(255,255,255,0.08)',
-                  color: 'white'
+                    ? (isTeacher ? 'linear-gradient(135deg, #d97706, #f59e0b)' : 'linear-gradient(135deg, #4f46e5, #7c3aed)')
+                    : 'rgba(255,255,255,0.07)',
+                  border: m.role === 'assistant' ? '1px solid rgba(99,102,241,0.2)' : 'none',
+                  boxShadow: m.role === 'user'
+                    ? (isTeacher ? '0 0 12px rgba(245,158,11,0.35)' : '0 0 12px rgba(99,102,241,0.35)')
+                    : 'none',
                 }}>
-                  {m.role === 'user' ? <User size={17} /> : <Bot size={17} />}
+                  {m.role === 'user' ? <User size={15} color="white" /> : <Bot size={15} color="#a5b4fc" />}
                 </div>
+                {/* Bubble */}
                 <div style={{
                   background: m.role === 'user'
-                    ? (isTeacher ? 'rgba(245,158,11,0.12)' : 'rgba(59,130,246,0.13)')
-                    : 'rgba(255,255,255,0.05)',
-                  padding: '0.85rem 1.1rem', borderRadius: '10px', maxWidth: '82%',
-                  fontSize: '0.9rem', lineHeight: 1.65, whiteSpace: 'pre-wrap',
+                    ? (isTeacher ? 'rgba(245,158,11,0.1)' : 'rgba(99,102,241,0.1)')
+                    : 'rgba(255,255,255,0.04)',
+                  padding: '0.85rem 1.15rem',
+                  borderRadius: '12px',
+                  maxWidth: '80%',
+                  fontSize: '0.875rem', lineHeight: 1.7,
+                  whiteSpace: 'pre-wrap',
                   border: m.role === 'user'
-                    ? `1px solid ${isTeacher ? 'rgba(245,158,11,0.25)' : 'rgba(59,130,246,0.2)'}`
-                    : '1px solid var(--card-border)',
-                  borderTopRightRadius: m.role === 'user' ? 0 : '10px',
-                  borderTopLeftRadius: m.role === 'user' ? '10px' : 0,
+                    ? `1px solid ${isTeacher ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.2)'}`
+                    : '1px solid rgba(255,255,255,0.07)',
+                  borderTopRightRadius: m.role === 'user' ? '3px' : '12px',
+                  borderTopLeftRadius: m.role === 'user' ? '12px' : '3px',
                 }}>
                   {m.content}
                 </div>
               </div>
             ))}
 
+            {/* Typing indicator */}
             {isLoading && (
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }}>
-                  <Bot size={17} color="var(--primary)" />
+              <div style={{ display: 'flex', gap: '0.75rem', animation: 'fadeIn 0.3s ease-out' }}>
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(99,102,241,0.2)', flexShrink: 0,
+                }}>
+                  <Bot size={15} color="#a5b4fc" />
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.04)', padding: '0.75rem 1rem', borderRadius: '10px', borderTopLeftRadius: 0, border: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--muted-foreground)', fontSize: '0.85rem' }}>
-                  <Loader2 size={14} color="var(--primary)" style={{ animation: 'spin 1s linear infinite' }} />
+                <div style={{
+                  background: 'rgba(255,255,255,0.04)', padding: '0.75rem 1rem',
+                  borderRadius: '12px', borderTopLeftRadius: '3px',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  color: 'var(--muted-foreground)', fontSize: '0.8rem',
+                }}>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                  </div>
                   Searching sources...
                 </div>
               </div>
@@ -303,83 +401,127 @@ export default function AiAssistant() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <form onSubmit={handleSubmit} style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--card-border)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
-            <div style={{ display: 'flex', gap: '0.6rem', position: 'relative' }}>
+          {/* Input area */}
+          <form onSubmit={handleSubmit} style={{
+            padding: '0.85rem 1.25rem',
+            borderTop: `1px solid ${isTeacher ? 'rgba(245,158,11,0.12)' : 'var(--card-border)'}`,
+            background: 'rgba(0,0,0,0.3)', flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
               <input
                 value={input}
                 onChange={handleInputChange}
                 className="input-field"
                 placeholder={isTeacher ? 'Ask a question to verify grounding...' : 'Ask about course materials...'}
-                style={{ padding: '0.85rem 3.5rem 0.85rem 1.1rem', fontSize: '0.9rem', borderRadius: '8px' }}
+                style={{ padding: '0.8rem 3.5rem 0.8rem 1rem', fontSize: '0.875rem', borderRadius: '10px' }}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input}
                 style={{
                   position: 'absolute', right: '0.4rem', top: '0.4rem', bottom: '0.4rem',
-                  padding: '0 0.9rem', display: 'flex', alignItems: 'center',
-                  borderRadius: '6px', background: isTeacher ? '#d97706' : 'var(--primary)',
+                  padding: '0 0.9rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '7px',
+                  background: isTeacher
+                    ? 'linear-gradient(135deg, #d97706, #f59e0b)'
+                    : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
                   border: 'none', cursor: 'pointer',
-                  opacity: isLoading || !input ? 0.5 : 1, transition: 'opacity 0.2s', color: 'white'
+                  opacity: isLoading || !input ? 0.4 : 1,
+                  transition: 'all 0.2s ease', color: 'white',
+                  boxShadow: isTeacher ? '0 0 12px rgba(245,158,11,0.3)' : '0 0 12px rgba(99,102,241,0.3)',
+                  fontFamily: 'inherit',
                 }}
+                onMouseEnter={e => { if (!isLoading && input) { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.filter = 'brightness(1.1)'; }}}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none'; }}
               >
-                <Send size={16} />
+                <Send size={15} />
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* ── Studio Panel ── */}
-      <div style={{ width: '248px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
-
-          {/* Header */}
-          <div style={{ padding: '1rem 1.1rem', borderBottom: '1px solid var(--card-border)', flexShrink: 0 }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Studio</span>
-            <p style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: '0.3rem', lineHeight: 1.45 }}>
+      {/* ══════════════════ STUDIO PANEL ══════════════════ */}
+      <div style={{ width: '252px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          background: 'rgba(8,8,24,0.8)',
+          border: '1px solid var(--card-border)',
+          borderRadius: 'var(--radius)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: 'var(--shadow-card)',
+        }}>
+          {/* Studio header */}
+          <div style={{
+            padding: '0.9rem 1rem', flexShrink: 0,
+            borderBottom: '1px solid var(--card-border)',
+            background: 'rgba(168,85,247,0.04)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.2rem' }}>
+              <Sparkles size={13} color="#c084fc" />
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
+                Studio
+              </span>
+            </div>
+            <p style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', lineHeight: 1.4, marginTop: '0.25rem' }}>
               Generate content from your sources.
             </p>
           </div>
 
-          {/* Actions */}
+          {/* Action buttons */}
           <div style={{ padding: '0.65rem', borderBottom: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column', gap: '0.35rem', flexShrink: 0 }}>
-            {STUDIO_ACTIONS.map(action => (
+            {STUDIO_ACTIONS.map((action) => (
               <button
                 key={action.label}
                 onClick={() => { setStudioOutput(''); studioAppend({ role: 'user', content: action.prompt }); }}
                 disabled={studioLoading || indexedDocs.length === 0}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '0.45rem',
-                  padding: '0.5rem 0.8rem', borderRadius: '7px', fontSize: '0.78rem', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.55rem 0.85rem', borderRadius: '8px',
+                  fontSize: '0.78rem', fontWeight: 600,
                   cursor: studioLoading || indexedDocs.length === 0 ? 'not-allowed' : 'pointer',
-                  background: `${action.color}18`,
+                  background: `${action.color}14`,
                   color: action.color,
-                  border: `1px solid ${action.color}33`,
-                  opacity: studioLoading || indexedDocs.length === 0 ? 0.5 : 1,
-                  transition: 'all 0.2s', textAlign: 'left', width: '100%'
+                  border: `1px solid ${action.color}30`,
+                  opacity: studioLoading || indexedDocs.length === 0 ? 0.45 : 1,
+                  transition: 'all 0.2s ease', textAlign: 'left', width: '100%',
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={e => {
+                  if (!studioLoading && indexedDocs.length > 0) {
+                    e.currentTarget.style.background = `${action.color}25`;
+                    e.currentTarget.style.borderColor = `${action.color}60`;
+                    e.currentTarget.style.boxShadow = `0 0 12px ${action.glow}`;
+                    e.currentTarget.style.transform = 'translateX(2px)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = `${action.color}14`;
+                  e.currentTarget.style.borderColor = `${action.color}30`;
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateX(0)';
                 }}
               >
-                <action.icon size={12} /> {action.label}
+                <action.icon size={13} /> {action.label}
               </button>
             ))}
           </div>
 
-          {/* Output */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
+          {/* Studio output */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0.8rem' }}>
             {studioLoading && !studioOutput && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--muted-foreground)', fontSize: '0.8rem' }}>
-                <Loader2 size={13} color="var(--primary)" style={{ animation: 'spin 1s linear infinite' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--muted-foreground)', fontSize: '0.78rem', padding: '0.25rem 0' }}>
+                <Loader2 size={13} color="#c084fc" style={{ animation: 'spin 1s linear infinite' }} />
                 Generating...
               </div>
             )}
             {(studioOutput || (studioLoading && studioMessages.length > 0)) ? (
-              <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.78rem', lineHeight: 1.65, color: 'var(--foreground)', fontFamily: 'inherit', margin: 0 }}>
+              <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.76rem', lineHeight: 1.7, color: 'var(--foreground)', fontFamily: 'inherit', margin: 0 }}>
                 {studioMessages.filter(m => m.role === 'assistant').slice(-1)[0]?.content || studioOutput}
               </pre>
             ) : !studioLoading && (
-              <p style={{ fontSize: '0.76rem', color: 'var(--muted-foreground)', fontStyle: 'italic', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.74rem', color: 'var(--muted-foreground)', fontStyle: 'italic', lineHeight: 1.6, textAlign: 'center', padding: '1rem 0' }}>
                 Select an action above to generate content from your indexed sources.
               </p>
             )}
